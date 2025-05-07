@@ -1,12 +1,10 @@
-import Login from "./components/Login";
-import SignUp from "./components/SignUp";
+import ThreeScene from "./components/ThreeScene";
 
 const App = () => {
 	return (
-		<>
-			<SignUp />
-			<Login />
-		</>
+		<div className="bg-neutral-800 w-full min-h-screen">
+			<ThreeScene />
+		</div>
 	);
 };
 
