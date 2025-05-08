@@ -18,13 +18,15 @@ const Cube = ({
 		onRightClick(position);
 	};
 
-	// Place blocks directly on the grid (lower y position from 0.5 to 0.45)
-	const adjustedPosition: [number, number, number] = [position[0], 0.45, position[2]];
+	// Calculate the y position based on the grid
+	// Blocks should start at y=0 (the ground plane) and extend upward
+	const adjustedPosition: [number, number, number] = [position[0], 0.5, position[2]];
 
 	return (
 		<mesh position={adjustedPosition} onContextMenu={handleContextMenu}>
 			<boxGeometry args={[0.9, 0.9, 0.9]} />
-			<meshStandardMaterial color={color} />
+			{/* Use only one material to avoid warnings and improve performance */}
+			<meshStandardMaterial color={color} roughness={0.7} metalness={0.1} />
 		</mesh>
 	);
 };
@@ -46,19 +48,14 @@ const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSi
 
 	// Calculate grid properties based on size
 	const grid = useMemo(() => {
-		// For even grid sizes, we want to center the grid at (0,0)
-		// For odd grid sizes, we want to have a cell centered at (0,0)
-		let offset = 0;
-		if (gridSize % 2 === 0) {
-			offset = 0.5;
-		}
-
+		// For both even and odd grid sizes, we want to center the grid consistently
 		const halfSize = gridSize / 2;
+
+		// Calculate grid bounds - important for proper alignment
 		return {
-			min: -halfSize + offset,
-			max: halfSize + offset,
+			min: -halfSize,
+			max: halfSize,
 			size: gridSize,
-			offset,
 		};
 	}, [gridSize]);
 
@@ -103,7 +100,7 @@ const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSi
 
 	// Update all cubes when color changes
 	useEffect(() => {
-		// This effect just makes React aware of the dependency on blockColor
+		// This effect makes React aware of the dependency on blockColor
 	}, [blockColor]);
 
 	return (
@@ -118,20 +115,20 @@ const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSi
 					<meshBasicMaterial color="#222222" />
 				</mesh>
 
-				{/* Creates a consistent grid aligned with cells */}
+				{/* Create grid lines that perfectly align with the cells */}
 				{Array.from({ length: gridSize + 1 }).map((_, i) => {
-					// Calculate position for each line to ensure proper alignment
-					const pos = grid.min + i;
+					// Calculate position for each line to ensure proper alignment with cells
+					const pos = i - gridSize / 2;
 					return (
 						<line key={`h-${i}`}>
 							<bufferGeometry
 								attach="geometry"
 								onUpdate={(self) => {
 									const positions = new Float32Array(6);
-									positions[0] = grid.min;
+									positions[0] = -gridSize / 2; // Left edge
 									positions[1] = 0.01; // Slightly above the plane
 									positions[2] = pos;
-									positions[3] = grid.max;
+									positions[3] = gridSize / 2; // Right edge
 									positions[4] = 0.01;
 									positions[5] = pos;
 									self.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -143,8 +140,8 @@ const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSi
 				})}
 
 				{Array.from({ length: gridSize + 1 }).map((_, i) => {
-					// Calculate position for each line to ensure proper alignment
-					const pos = grid.min + i;
+					// Calculate position for each line to ensure proper alignment with cells
+					const pos = i - gridSize / 2;
 					return (
 						<line key={`v-${i}`}>
 							<bufferGeometry
@@ -153,10 +150,10 @@ const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSi
 									const positions = new Float32Array(6);
 									positions[0] = pos;
 									positions[1] = 0.01; // Slightly above the plane
-									positions[2] = grid.min;
+									positions[2] = -gridSize / 2; // Top edge
 									positions[3] = pos;
 									positions[4] = 0.01;
-									positions[5] = grid.max;
+									positions[5] = gridSize / 2; // Bottom edge
 									self.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 								}}
 							/>
@@ -182,6 +179,8 @@ const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSi
 					onRightClick={handleRightClick}
 				/>
 			))}
+
+			{/* Lock camera controls to only allow panning and zooming, not rotation */}
 			<OrbitControls enableRotate={false} enablePan={true} minZoom={30} maxZoom={100} enableDamping={false} />
 		</>
 	);
@@ -195,13 +194,22 @@ const ThreeScene = () => {
 		gridColor: "#ffffff",
 	});
 
-	// Calculate camera settings based on grid size
+	// Fixed isometric view settings
 	const cameraSettings = useMemo(() => {
 		const baseZoom = 40;
 		// Adjust zoom based on grid size to keep the view consistent
 		const scaleFactor = 20 / guiControls.gridSize;
+
+		// Classic isometric angle settings
+		// Using the exact 30° elevation and 45° rotation for true isometric projection
+		const distance = 25;
 		return {
-			position: [15, 15, 15] as [number, number, number],
+			position: [distance, distance * 0.8660254, distance] as [number, number, number], // Adjust Y for perfect 30° elevation
+			rotation: [
+				-Math.PI / 6, // -30 degrees around X (classic isometric elevation)
+				Math.PI / 4, // 45 degrees around Y (classic isometric rotation)
+				0, // No rotation around Z axis
+			] as [number, number, number],
 			zoom: baseZoom * scaleFactor,
 		};
 	}, [guiControls.gridSize]);
@@ -277,7 +285,7 @@ const ThreeScene = () => {
 					zoom: cameraSettings.zoom,
 					near: 0.1,
 					far: 1000,
-					rotation: [0, 0, 0],
+					rotation: cameraSettings.rotation,
 					up: [0, 1, 0],
 				}}
 				style={{
