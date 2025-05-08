@@ -1,22 +1,13 @@
 import { Router } from "express";
+import { createMap, deleteMap, getMap, getMaps, updateMap } from "./handlers/map";
 
 const router = Router();
 
-// Maps
-router.get("/maps", (req, res) => {
-	res.json({ data: "List of all maps" });
-});
-
-router.get("/maps/:id", (req, res) => {
-	res.json({ data: "One map" });
-});
-
-router.post("/maps", (req, res) => {
-	res.json({ data: "Map created" });
-});
-
-router.put("/maps/:id", (req, res) => {
-	res.json({ data: "Map edited" });
-});
+// Maps routes
+router.get("/maps", getMaps);
+router.get("/maps/:id", getMap);
+router.post("/maps", createMap);
+router.put("/maps/:id", updateMap);
+router.delete("/maps/:id", deleteMap);
 
 export default router;

@@ -14,6 +14,7 @@ export const createUser = async (req, res, next) => {
 		res.json({ token });
 	} catch (error) {
 		console.error(error);
+		res.status(500).json({ message: "Error creating user" });
 	}
 };
 
@@ -24,17 +25,22 @@ export const signIn = async (req, res, next) => {
 				email: req.body.email,
 			},
 		});
-		const isValid = await comparePassword(req.body.password, user.password);
-		if (!isValid) {
-			res.status(401),
-				res.message({
-					message: "Not today buddy",
-				});
+
+		if (!user) {
+			res.status(401).json({ message: "Invalid credentials" });
 			return;
 		}
+
+		const isValid = await comparePassword(req.body.password, user.password);
+		if (!isValid) {
+			res.status(401).json({ message: "Invalid credentials" });
+			return;
+		}
+
 		const token = createJwt(user);
 		res.json({ token });
 	} catch (error) {
 		console.error(error);
+		res.status(500).json({ message: "Error during sign in" });
 	}
 };

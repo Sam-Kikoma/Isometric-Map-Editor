@@ -11,7 +11,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User{
@@ -31,6 +30,7 @@ model Map{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isPublic Boolean
+  data Json? // Add this field to store map data (cubes positions, colors, etc.)
   user User @relation(fields: [userId], references: [id])
   userId String
 }
