@@ -201,13 +201,13 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 	return (
 		<>
 			{/* Navbar */}
-			<div className="navbar bg-base-100 shadow-lg fixed top-0 left-0 right-0 z-20">
+			<div className="navbar bg-base-100 shadow-lg fixed top-0 left-0 right-0 z-20 px-6">
 				<div className="flex-1">
 					<Link to="/" className="btn btn-ghost text-xl">
 						IsoEdit
 					</Link>
 				</div>
-				<div className="flex-none gap-2">
+				<div className="flex items-center gap-3">
 					<Link to="/community" className="btn btn-ghost btn-sm">
 						Community
 					</Link>
