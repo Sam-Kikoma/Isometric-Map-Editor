@@ -14,6 +14,9 @@ const Landing = () => {
 						creating an account.
 					</p>
 					<div className="flex flex-col sm:flex-row gap-4 justify-center">
+						<Link to="/community" className="btn btn-secondary">
+							Community
+						</Link>
 						{isAuthenticated ? (
 							<>
 								<Link to="/editor" className="btn btn-primary">
