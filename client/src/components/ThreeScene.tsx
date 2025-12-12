@@ -207,6 +207,7 @@ const ThreeScene = () => {
 					width: `${guiControls.canvasSize}%`,
 					height: `${guiControls.canvasSize}%`,
 					aspectRatio: "1 / 1",
+					background: "#1d232a",
 				}}
 			>
 				<Scene
