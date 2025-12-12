@@ -3,6 +3,7 @@ import ThreeScene from "./components/ThreeScene";
 import Landing from "./components/Landing";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import Community from "./components/Community";
 
 // Protected route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
 				<ThreeScene />
 			</ProtectedRoute>
 		),
+	},
+	{
+		path: "/community",
+		element: <Community />,
 	},
 ]);
 
