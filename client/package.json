@@ -13,6 +13,7 @@
 		"@react-three/drei": "^10.0.5",
 		"@react-three/fiber": "^9.1.0",
 		"@tailwindcss/vite": "^4.1.5",
+		"gradflow": "^0.1.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"react-router-dom": "^7.4.0",
