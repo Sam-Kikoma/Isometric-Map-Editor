@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { CubeData } from "./types";
+import type { CubeData, AssetData } from "./types";
 
 interface MapControlsProps {
-	cubes: CubeData[];
+	cubes: AssetData[];
 	blockColor: string;
-	handleLoadMap: (cubes: CubeData[], color: string) => void;
+	handleLoadMap: (assets: (CubeData | AssetData)[], color: string) => void;
 	deleteMode: boolean;
 	setDeleteMode: (mode: boolean) => void;
 }
@@ -70,13 +70,13 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 			setSaving(true);
 			setError("");
 
-			// Prepare map data with current cubes and color
+			// Prepare map data with current assets and color
 			const mapData = {
 				title,
 				description,
 				isPublic,
 				data: {
-					cubes,
+					assets: cubes, // Save as 'assets' for new format (cubes prop now contains AssetData[])
 					blockColor,
 				},
 			};
