@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useSearchParams } from "react-router-dom";
 import SettingsPanel from "./editor/SettingsPanel";
 import MapControls from "./editor/MapControls";
 import Scene from "./editor/Scene";
-import { CubeData } from "./editor/types";
+import { AssetData, CubeData } from "./editor/types";
 
 const ThreeScene = () => {
 	const [guiControls, setGuiControls] = useState({
@@ -13,11 +13,16 @@ const ThreeScene = () => {
 		gridSize: 20,
 		gridColor: "#ffffff",
 	});
-	const [cubes, setCubes] = useState<CubeData[]>([]);
+	const [assets, setAssets] = useState<AssetData[]>([]);
 	const [deleteMode, setDeleteMode] = useState(false);
 	const [selectedTexture, setSelectedTexture] = useState<string | null>(null);
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [initialLoadDone, setInitialLoadDone] = useState(false);
+	
+	// New state for models
+	const [placementMode, setPlacementMode] = useState<'cube' | 'model'>('cube');
+	const [selectedModel, setSelectedModel] = useState<string | null>(null);
+	const [modelRotation, setModelRotation] = useState(0);
 
 	// Handle color update from loaded map
 	const handleColorUpdate = (color: string) => {
@@ -27,37 +32,42 @@ const ThreeScene = () => {
 		}));
 	};
 
-	// Handle loading map data
-	const handleLoadMap = (loadedCubes: CubeData[], loadedColor: string) => {
-		console.log("ThreeScene received loadedCubes:", loadedCubes, "loadedColor:", loadedColor);
+	// Handle loading map data (supports both legacy CubeData and new AssetData)
+	const handleLoadMap = (loadedData: (CubeData | AssetData)[], loadedColor: string) => {
+		console.log("ThreeScene received loadedData:", loadedData, "loadedColor:", loadedColor);
 
-		if (Array.isArray(loadedCubes)) {
-			// Convert simple position arrays to CubeData if necessary
-			const validCubes = loadedCubes
-				.map((cube) => {
-					if (Array.isArray(cube) && cube.length === 3) {
+		if (Array.isArray(loadedData)) {
+			const validAssets = loadedData
+				.map((item) => {
+					if (Array.isArray(item) && item.length === 3) {
 						// Old format: [x, y, z] arrays
 						return {
-							position: cube as [number, number, number],
+							position: item as [number, number, number],
+							type: 'cube' as const,
 							color: loadedColor,
 							texture: null,
 						};
-					} else if (typeof cube === "object" && cube !== null) {
-						// New format: CubeData objects
+					} else if (typeof item === "object" && item !== null) {
+						// Check if it's new AssetData format (has 'type' field)
+						if ('type' in item && (item.type === 'cube' || item.type === 'model')) {
+							return item as AssetData;
+						}
+						// Legacy CubeData format
 						return {
-							position: Array.isArray(cube.position) ? (cube.position as [number, number, number]) : [0, 0, 0],
-							color: typeof cube.color === "string" ? cube.color : loadedColor,
-							texture: typeof cube.texture === "string" || cube.texture === null ? cube.texture : null,
+							position: Array.isArray(item.position) ? (item.position as [number, number, number]) : [0, 0, 0],
+							type: 'cube' as const,
+							color: typeof item.color === "string" ? item.color : loadedColor,
+							texture: typeof item.texture === "string" || item.texture === null ? item.texture : null,
 						};
 					}
 					return null;
 				})
-				.filter((cube) => cube !== null) as CubeData[];
+				.filter((asset) => asset !== null) as AssetData[];
 
-			setCubes(validCubes);
+			setAssets(validAssets);
 		} else {
-			console.error("loadedCubes is not an array:", loadedCubes);
-			setCubes([]);
+			console.error("loadedData is not an array:", loadedData);
+			setAssets([]);
 		}
 
 		if (typeof loadedColor === "string") {
@@ -83,17 +93,18 @@ const ThreeScene = () => {
 						console.log("Loading map from URL:", mapData);
 
 						if (mapData.data) {
-							let cubes, blockColor;
+							let assets, blockColor;
 							if (mapData.data.data) {
-								cubes = mapData.data.data.cubes;
+								// Check for new 'assets' field first, fall back to 'cubes'
+								assets = mapData.data.data.assets || mapData.data.data.cubes;
 								blockColor = mapData.data.data.blockColor;
 							} else {
-								cubes = mapData.data.cubes;
+								assets = mapData.data.assets || mapData.data.cubes;
 								blockColor = mapData.data.blockColor;
 							}
 
-							if (Array.isArray(cubes) && typeof blockColor === "string") {
-								handleLoadMap(cubes, blockColor);
+							if (Array.isArray(assets) && typeof blockColor === "string") {
+								handleLoadMap(assets, blockColor);
 							}
 						}
 					}
@@ -109,11 +120,14 @@ const ThreeScene = () => {
 		loadMapFromUrl();
 	}, [searchParams, initialLoadDone]);
 
-	// Toggle delete mode with keyboard
+	// Toggle delete mode with 'D' key, rotate model with 'R' key
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key.toLowerCase() === "d") {
 				setDeleteMode((prev) => !prev);
+			}
+			if (e.key.toLowerCase() === "r" && placementMode === 'model') {
+				setModelRotation((prev) => (prev + 90) % 360);
 			}
 		};
 
@@ -121,7 +135,7 @@ const ThreeScene = () => {
 		return () => {
 			window.removeEventListener("keydown", handleKeyDown);
 		};
-	}, []);
+	}, [placementMode]);
 
 	const cameraSettings = useMemo(() => {
 		const baseZoom = 40;
@@ -143,6 +157,9 @@ const ThreeScene = () => {
 	const setGridColor = (color: string) => {
 		setGuiControls((prev) => ({ ...prev, gridColor: color }));
 	};
+
+	// Convert assets to legacy format for MapControls (save compatibility)
+	const cubesForSave = assets;
 
 	return (
 		<div
@@ -167,11 +184,17 @@ const ThreeScene = () => {
 				setSelectedTexture={setSelectedTexture}
 				deleteMode={deleteMode}
 				setDeleteMode={setDeleteMode}
+				placementMode={placementMode}
+				setPlacementMode={setPlacementMode}
+				selectedModel={selectedModel}
+				setSelectedModel={setSelectedModel}
+				modelRotation={modelRotation}
+				setModelRotation={setModelRotation}
 			/>
 
-			{/* Delete Mode Status Indicator */}
+			{/* Delete Mode Status Indicator - positioned below the Delete Blocks button */}
 			{deleteMode && (
-				<div className="absolute top-20 right-80 z-10 bg-error text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+				<div className="absolute top-36 left-4 z-10 bg-error text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
 					<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
 						<path
 							fillRule="evenodd"
@@ -183,9 +206,18 @@ const ThreeScene = () => {
 				</div>
 			)}
 
+			{/* Model Placement Indicator - below delete mode indicator or below button */}
+			{placementMode === 'model' && selectedModel && (
+				<div className={`absolute ${deleteMode ? 'top-48' : 'top-36'} left-4 z-10 bg-primary text-white px-4 py-2 rounded-lg shadow-lg`}>
+					<span className="font-medium">Placing: {selectedModel}</span>
+					<span className="ml-2 opacity-75">({modelRotation}°)</span>
+					<span className="ml-2 text-xs opacity-75">Press 'R' to rotate</span>
+				</div>
+			)}
+
 			{/* MapControls moved here, outside of the Canvas */}
 			<MapControls
-				cubes={cubes}
+				cubes={cubesForSave}
 				blockColor={guiControls.blockColor}
 				handleLoadMap={handleLoadMap}
 				deleteMode={deleteMode}
@@ -210,15 +242,20 @@ const ThreeScene = () => {
 					background: "#1d232a",
 				}}
 			>
-				<Scene
-					blockColor={guiControls.blockColor}
-					gridSize={guiControls.gridSize}
-					gridColor={guiControls.gridColor}
-					cubes={cubes}
-					onCubesChange={setCubes}
-					deleteMode={deleteMode}
-					selectedTexture={selectedTexture}
-				/>
+				<Suspense fallback={null}>
+					<Scene
+						blockColor={guiControls.blockColor}
+						gridSize={guiControls.gridSize}
+						gridColor={guiControls.gridColor}
+						assets={assets}
+						onAssetsChange={setAssets}
+						deleteMode={deleteMode}
+						selectedTexture={selectedTexture}
+						selectedModel={selectedModel}
+						placementMode={placementMode}
+						modelRotation={modelRotation}
+					/>
+				</Suspense>
 			</Canvas>
 		</div>
 	);
