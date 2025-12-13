@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useFrame, useThree, useLoader } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import Cube from "./Cube";
+import Model from "./Model";
 import Highlight from "./Highlight";
-import { TEXTURES, CubeData } from "./types";
+import { TEXTURES, AssetData, getAllTexturePaths } from "./types";
 
 // Texture loader component to preload textures
 const TextureLoader = ({
@@ -12,36 +13,61 @@ const TextureLoader = ({
 }: {
 	children: (textureMap: Record<string, THREE.Texture | null>) => React.ReactElement;
 }) => {
-	const textures = useLoader(THREE.TextureLoader, [TEXTURES.brick, TEXTURES.fabric, TEXTURES.metal, TEXTURES.paper]);
+	const texturePaths = getAllTexturePaths();
+	const textures = useLoader(THREE.TextureLoader, texturePaths);
 
 	// Create a mapping of texture paths to loaded textures
 	const textureMap = useMemo(() => {
 		const map: Record<string, THREE.Texture | null> = {};
-		[TEXTURES.brick, TEXTURES.fabric, TEXTURES.metal, TEXTURES.paper].forEach((path, index) => {
+		texturePaths.forEach((path, index) => {
 			map[path] = textures[index];
 			// Configure texture repeat and wrapping
 			textures[index].wrapS = textures[index].wrapT = THREE.RepeatWrapping;
 			textures[index].repeat.set(1, 1);
 		});
 		return map;
-	}, [textures]);
+	}, [textures, texturePaths]);
 
 	return children(textureMap);
 };
+
+// Selection state for what user is placing
+export interface PlacementSelection {
+	mode: 'cube' | 'model';
+	// For cubes
+	color?: string;
+	textureId?: string | null;
+	// For models
+	modelId?: string;
+	rotation?: number;
+}
 
 interface SceneProps {
 	blockColor: string;
 	gridSize: number;
 	gridColor: string;
-	cubes: CubeData[];
-	onCubesChange: (cubes: CubeData[]) => void;
+	assets: AssetData[];
+	onAssetsChange: (assets: AssetData[]) => void;
 	deleteMode: boolean;
 	selectedTexture: string | null;
+	selectedModel: string | null;
+	placementMode: 'cube' | 'model';
+	modelRotation: number;
 }
 
-const Scene = ({ blockColor, gridSize, gridColor, cubes, onCubesChange, deleteMode, selectedTexture }: SceneProps) => {
+const Scene = ({ 
+	blockColor, 
+	gridSize, 
+	gridColor, 
+	assets, 
+	onAssetsChange, 
+	deleteMode, 
+	selectedTexture,
+	selectedModel,
+	placementMode,
+	modelRotation 
+}: SceneProps) => {
 	const [highlightPos, setHighlightPos] = useState<[number, number, number]>([0, 0, 0]);
-	const [highlightColor, setHighlightColor] = useState(0xffffff);
 	const { camera, raycaster } = useThree();
 
 	const grid = useMemo(() => {
@@ -68,36 +94,58 @@ const Scene = ({ blockColor, gridSize, gridColor, cubes, onCubesChange, deleteMo
 			const max = Math.floor(grid.max) - 1;
 
 			if (newX >= min && newX <= max && newZ >= min && newZ <= max) {
-				setHighlightPos([newX, 0, newZ]);
-
-				const objectExists = cubes.some((cube) => cube.position[0] === newX && cube.position[2] === newZ);
-				setHighlightColor(objectExists ? 0xff0000 : 0xffffff);
+				// Calculate the stacking height for the highlight
+				const assetsAtPosition = assets.filter((asset) => asset.position[0] === newX && asset.position[2] === newZ);
+				const stackY = assetsAtPosition.length > 0 
+					? Math.max(...assetsAtPosition.map((asset) => asset.position[1])) + 1 
+					: 0;
+				
+				setHighlightPos([newX, stackY, newZ]);
 			}
 		}
 	});
 
 	const handleClick = () => {
-		const [x, y, z] = highlightPos;
-		const exists = cubes.some((cube) => cube.position[0] === x && cube.position[2] === z);
+		const [x, , z] = highlightPos;
 
 		if (deleteMode) {
 			return;
 		}
 
-		if (!exists) {
-			const newCube: CubeData = {
-				position: [x, y, z],
+		// Find all assets at this x,z position and get the highest y value
+		const assetsAtPosition = assets.filter((asset) => asset.position[0] === x && asset.position[2] === z);
+		const highestY = assetsAtPosition.length > 0 
+			? Math.max(...assetsAtPosition.map((asset) => asset.position[1])) + 1 
+			: 0;
+
+		let newAsset: AssetData;
+		
+		if (placementMode === 'model' && selectedModel) {
+			newAsset = {
+				position: [x, highestY, z],
+				type: 'model',
+				modelId: selectedModel,
+				rotation: modelRotation,
+			};
+		} else {
+			newAsset = {
+				position: [x, highestY, z],
+				type: 'cube',
 				color: blockColor,
 				texture: selectedTexture,
 			};
-			const newCubes = [...cubes, newCube];
-			onCubesChange(newCubes);
 		}
+		
+		const newAssets = [...assets, newAsset];
+		onAssetsChange(newAssets);
 	};
 
-	const handleDeleteBlock = (pos: [number, number, number]) => {
-		const newCubes = cubes.filter((cube) => cube.position[0] !== pos[0] || cube.position[2] !== pos[2]);
-		onCubesChange(newCubes);
+	const handleDeleteAsset = (pos: [number, number, number]) => {
+		// Delete the specific asset at this exact position (including y)
+		const newAssets = assets.filter(
+			(asset) => !(asset.position[0] === pos[0] && asset.position[1] === pos[1] && asset.position[2] === pos[2])
+		);
+		onAssetsChange(newAssets);
 	};
 
 	return (
@@ -165,19 +213,36 @@ const Scene = ({ blockColor, gridSize, gridColor, cubes, onCubesChange, deleteMo
 						<meshBasicMaterial transparent opacity={0} />
 					</mesh>
 
-					<Highlight position={highlightPos} visible={highlightColor === 0xffffff} deleteMode={deleteMode} />
+					<Highlight position={highlightPos} visible={true} deleteMode={deleteMode} />
 
-					{cubes.map((cube, index) => (
+					{/* Render cubes */}
+					{assets.filter(asset => asset.type === 'cube').map((asset, index) => (
 						<Cube
-							key={`cube-${cube.position[0]}-${cube.position[2]}-${index}`}
-							position={cube.position}
-							color={cube.color}
-							onRightClick={handleDeleteBlock}
+							key={`cube-${asset.position[0]}-${asset.position[2]}-${index}`}
+							position={asset.position}
+							color={asset.color || '#ff0000'}
+							onRightClick={handleDeleteAsset}
 							deleteMode={deleteMode}
-							onClick={handleDeleteBlock}
-							texture={cube.texture ? textureMap[cube.texture] : null}
+							onClick={handleDeleteAsset}
+							texture={asset.texture ? textureMap[asset.texture] : null}
 						/>
 					))}
+
+					{/* Render models */}
+					<Suspense fallback={null}>
+						{assets.filter(asset => asset.type === 'model' && asset.modelId).map((asset, index) => (
+							<Model
+								key={`model-${asset.position[0]}-${asset.position[2]}-${index}`}
+								position={asset.position}
+								modelId={asset.modelId!}
+								rotation={asset.rotation}
+								scale={asset.scale}
+								onRightClick={handleDeleteAsset}
+								deleteMode={deleteMode}
+								onClick={handleDeleteAsset}
+							/>
+						))}
+					</Suspense>
 
 					<OrbitControls enableRotate={false} enablePan={true} minZoom={30} maxZoom={100} enableDamping={false} />
 				</>
