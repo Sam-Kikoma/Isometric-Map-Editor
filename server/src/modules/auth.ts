@@ -17,7 +17,7 @@ export const createJwt = (user) => {
 };
 // 4. Middleware to protect routes
 export const protect = (req, res, next) => {
-	const bearer = req.headers.auhorization;
+	const bearer = req.headers.authorization; // Fixed typo: auhorization -> authorization
 	if (!bearer) {
 		res.status(401);
 		res.send({ message: "Not authorized" });
@@ -36,6 +36,6 @@ export const protect = (req, res, next) => {
 		next();
 	} catch (err) {
 		console.error(err);
-		res.status;
+		res.status(401).json({ message: "Invalid token" }); // Fixed incomplete response
 	}
 };

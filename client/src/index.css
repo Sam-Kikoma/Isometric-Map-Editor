@@ -1,2 +1,9 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+	themes: sunset --default;
+}
+
+body {
+	font-family: "Inter", sans-serif;
+	-webkit-font-smoothing: antialiased;
+}

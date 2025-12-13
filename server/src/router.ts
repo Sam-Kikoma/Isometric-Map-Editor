@@ -1,22 +1,19 @@
 import { Router } from "express";
+import { createMap, deleteMap, getMap, getMaps, updateMap } from "./handlers/map";
+import { rateMap, getMapRating, deleteRating } from "./handlers/rating";
 
 const router = Router();
 
-// Maps
-router.get("/maps", (req, res) => {
-	res.json({ data: "List of all maps" });
-});
+// Maps routes
+router.get("/maps", getMaps);
+router.get("/maps/:id", getMap);
+router.post("/maps", createMap);
+router.put("/maps/:id", updateMap);
+router.delete("/maps/:id", deleteMap);
 
-router.get("/maps/:id", (req, res) => {
-	res.json({ data: "One map" });
-});
-
-router.post("/maps", (req, res) => {
-	res.json({ data: "Map created" });
-});
-
-router.put("/maps/:id", (req, res) => {
-	res.json({ data: "Map edited" });
-});
+// Rating routes
+router.post("/maps/:id/rate", rateMap);
+router.get("/maps/:id/rating", getMapRating);
+router.delete("/maps/:id/rating", deleteRating);
 
 export default router;

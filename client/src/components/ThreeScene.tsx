@@ -1,191 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import * as THREE from "three";
-import * as lil from "lil-gui";
-
-const Cube = ({
-	position,
-	color,
-	onRightClick,
-}: {
-	position: [number, number, number];
-	color: string;
-	onRightClick: (pos: [number, number, number]) => void;
-}) => {
-	const handleContextMenu = (e: React.MouseEvent) => {
-		e.preventDefault();
-		onRightClick(position);
-	};
-
-	// Place blocks directly on the grid (lower y position from 0.5 to 0.45)
-	const adjustedPosition: [number, number, number] = [position[0], 0.45, position[2]];
-
-	return (
-		<mesh position={adjustedPosition} onContextMenu={handleContextMenu}>
-			<boxGeometry args={[0.9, 0.9, 0.9]} />
-			<meshStandardMaterial color={color} />
-		</mesh>
-	);
-};
-
-const Highlight = ({ position, visible }: { position: [number, number, number]; visible: boolean }) => {
-	return (
-		<mesh position={[position[0], 0.03, position[2]]} rotation={[-Math.PI / 2, 0, 0]}>
-			<planeGeometry args={[1, 1]} />
-			<meshBasicMaterial side={THREE.DoubleSide} transparent opacity={0.5} color={visible ? 0xffffff : 0xff0000} />
-		</mesh>
-	);
-};
-
-const Scene = ({ blockColor, gridSize, gridColor }: { blockColor: string; gridSize: number; gridColor: string }) => {
-	const [cubes, setCubes] = useState<[number, number, number][]>([]);
-	const [highlightPos, setHighlightPos] = useState<[number, number, number]>([0, 0, 0]);
-	const [highlightColor, setHighlightColor] = useState(0xffffff);
-	const { camera, raycaster } = useThree();
-
-	// Calculate grid properties based on size
-	const grid = useMemo(() => {
-		// For even grid sizes, we want to center the grid at (0,0)
-		// For odd grid sizes, we want to have a cell centered at (0,0)
-		let offset = 0;
-		if (gridSize % 2 === 0) {
-			offset = 0.5;
-		}
-
-		const halfSize = gridSize / 2;
-		return {
-			min: -halfSize + offset,
-			max: halfSize + offset,
-			size: gridSize,
-			offset,
-		};
-	}, [gridSize]);
-
-	useFrame((state) => {
-		const mouse = new THREE.Vector2(state.mouse.x, state.mouse.y);
-		raycaster.setFromCamera(mouse, camera);
-
-		const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-		const intersectionPoint = new THREE.Vector3();
-
-		if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
-			// Snap to grid by rounding to integer values
-			const newX = Math.floor(intersectionPoint.x + 0.5);
-			const newZ = Math.floor(intersectionPoint.z + 0.5);
-
-			// Calculate grid bounds for validation
-			const min = Math.ceil(grid.min);
-			const max = Math.floor(grid.max) - 1;
-
-			// Ensure highlight stays within grid bounds
-			if (newX >= min && newX <= max && newZ >= min && newZ <= max) {
-				setHighlightPos([newX, 0, newZ]);
-
-				const objectExists = cubes.some((pos) => pos[0] === newX && pos[2] === newZ);
-				setHighlightColor(objectExists ? 0xff0000 : 0xffffff);
-			}
-		}
-	});
-
-	const handleClick = () => {
-		const [x, y, z] = highlightPos;
-		const exists = cubes.some((pos) => pos[0] === x && pos[2] === z);
-
-		if (!exists) {
-			setCubes([...cubes, [x, y, z]]);
-		}
-	};
-
-	const handleRightClick = (pos: [number, number, number]) => {
-		setCubes(cubes.filter((cube) => cube[0] !== pos[0] || cube[2] !== pos[2]));
-	};
-
-	// Update all cubes when color changes
-	useEffect(() => {
-		// This effect just makes React aware of the dependency on blockColor
-	}, [blockColor]);
-
-	return (
-		<>
-			<ambientLight intensity={0.5} />
-			<directionalLight position={[10, 10, 5]} intensity={1} />
-
-			<group>
-				{/* Dark background plane exactly matching the grid size */}
-				<mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-					<planeGeometry args={[gridSize, gridSize]} />
-					<meshBasicMaterial color="#222222" />
-				</mesh>
-
-				{/* Creates a consistent grid aligned with cells */}
-				{Array.from({ length: gridSize + 1 }).map((_, i) => {
-					// Calculate position for each line to ensure proper alignment
-					const pos = grid.min + i;
-					return (
-						<line key={`h-${i}`}>
-							<bufferGeometry
-								attach="geometry"
-								onUpdate={(self) => {
-									const positions = new Float32Array(6);
-									positions[0] = grid.min;
-									positions[1] = 0.01; // Slightly above the plane
-									positions[2] = pos;
-									positions[3] = grid.max;
-									positions[4] = 0.01;
-									positions[5] = pos;
-									self.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-								}}
-							/>
-							<lineBasicMaterial attach="material" color={gridColor} />
-						</line>
-					);
-				})}
-
-				{Array.from({ length: gridSize + 1 }).map((_, i) => {
-					// Calculate position for each line to ensure proper alignment
-					const pos = grid.min + i;
-					return (
-						<line key={`v-${i}`}>
-							<bufferGeometry
-								attach="geometry"
-								onUpdate={(self) => {
-									const positions = new Float32Array(6);
-									positions[0] = pos;
-									positions[1] = 0.01; // Slightly above the plane
-									positions[2] = grid.min;
-									positions[3] = pos;
-									positions[4] = 0.01;
-									positions[5] = grid.max;
-									self.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-								}}
-							/>
-							<lineBasicMaterial attach="material" color={gridColor} />
-						</line>
-					);
-				})}
-			</group>
-
-			{/* Invisible click plane matching grid size exactly */}
-			<mesh rotation={[-Math.PI / 2, 0, 0]} onClick={handleClick} visible={false} position={[0, 0.02, 0]}>
-				<planeGeometry args={[gridSize, gridSize]} />
-				<meshBasicMaterial transparent opacity={0} />
-			</mesh>
-
-			<Highlight position={highlightPos} visible={highlightColor === 0xffffff} />
-
-			{cubes.map((pos) => (
-				<Cube
-					key={`cube-${pos[0]}-${pos[2]}-${blockColor}`}
-					position={pos}
-					color={blockColor}
-					onRightClick={handleRightClick}
-				/>
-			))}
-			<OrbitControls enableRotate={false} enablePan={true} minZoom={30} maxZoom={100} enableDamping={false} />
-		</>
-	);
-};
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
+import { useSearchParams } from "react-router-dom";
+import SettingsPanel from "./editor/SettingsPanel";
+import MapControls from "./editor/MapControls";
+import Scene from "./editor/Scene";
+import { AssetData, CubeData } from "./editor/types";
 
 const ThreeScene = () => {
 	const [guiControls, setGuiControls] = useState({
@@ -194,81 +13,217 @@ const ThreeScene = () => {
 		gridSize: 20,
 		gridColor: "#ffffff",
 	});
+	const [assets, setAssets] = useState<AssetData[]>([]);
+	const [deleteMode, setDeleteMode] = useState(false);
+	const [selectedTexture, setSelectedTexture] = useState<string | null>(null);
+	const [searchParams, setSearchParams] = useSearchParams();
+	const [initialLoadDone, setInitialLoadDone] = useState(false);
+	
+	// New state for models
+	const [placementMode, setPlacementMode] = useState<'cube' | 'model'>('cube');
+	const [selectedModel, setSelectedModel] = useState<string | null>(null);
+	const [modelRotation, setModelRotation] = useState(0);
 
-	// Calculate camera settings based on grid size
+	// Handle color update from loaded map
+	const handleColorUpdate = (color: string) => {
+		setGuiControls((prev) => ({
+			...prev,
+			blockColor: color,
+		}));
+	};
+
+	// Handle loading map data (supports both legacy CubeData and new AssetData)
+	const handleLoadMap = (loadedData: (CubeData | AssetData)[], loadedColor: string) => {
+		console.log("ThreeScene received loadedData:", loadedData, "loadedColor:", loadedColor);
+
+		if (Array.isArray(loadedData)) {
+			const validAssets = loadedData
+				.map((item) => {
+					if (Array.isArray(item) && item.length === 3) {
+						// Old format: [x, y, z] arrays
+						return {
+							position: item as [number, number, number],
+							type: 'cube' as const,
+							color: loadedColor,
+							texture: null,
+						};
+					} else if (typeof item === "object" && item !== null) {
+						// Check if it's new AssetData format (has 'type' field)
+						if ('type' in item && (item.type === 'cube' || item.type === 'model')) {
+							return item as AssetData;
+						}
+						// Legacy CubeData format
+						return {
+							position: Array.isArray(item.position) ? (item.position as [number, number, number]) : [0, 0, 0],
+							type: 'cube' as const,
+							color: typeof item.color === "string" ? item.color : loadedColor,
+							texture: typeof item.texture === "string" || item.texture === null ? item.texture : null,
+						};
+					}
+					return null;
+				})
+				.filter((asset) => asset !== null) as AssetData[];
+
+			setAssets(validAssets);
+		} else {
+			console.error("loadedData is not an array:", loadedData);
+			setAssets([]);
+		}
+
+		if (typeof loadedColor === "string") {
+			handleColorUpdate(loadedColor);
+		}
+	};
+
+	// Load map from URL parameter on mount
+	useEffect(() => {
+		const loadMapFromUrl = async () => {
+			const mapId = searchParams.get("load");
+			if (mapId && !initialLoadDone) {
+				try {
+					const token = localStorage.getItem("token");
+					const response = await fetch(`http://localhost:3001/api/maps/${mapId}`, {
+						headers: {
+							Authorization: `Bearer ${token}`,
+						},
+					});
+
+					if (response.ok) {
+						const mapData = await response.json();
+						console.log("Loading map from URL:", mapData);
+
+						if (mapData.data) {
+							let assets, blockColor;
+							if (mapData.data.data) {
+								// Check for new 'assets' field first, fall back to 'cubes'
+								assets = mapData.data.data.assets || mapData.data.data.cubes;
+								blockColor = mapData.data.data.blockColor;
+							} else {
+								assets = mapData.data.assets || mapData.data.cubes;
+								blockColor = mapData.data.blockColor;
+							}
+
+							if (Array.isArray(assets) && typeof blockColor === "string") {
+								handleLoadMap(assets, blockColor);
+							}
+						}
+					}
+				} catch (error) {
+					console.error("Error loading map from URL:", error);
+				}
+				// Clear the URL parameter after loading
+				setSearchParams({});
+				setInitialLoadDone(true);
+			}
+		};
+
+		loadMapFromUrl();
+	}, [searchParams, initialLoadDone]);
+
+	// Toggle delete mode with 'D' key, rotate model with 'R' key
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key.toLowerCase() === "d") {
+				setDeleteMode((prev) => !prev);
+			}
+			if (e.key.toLowerCase() === "r" && placementMode === 'model') {
+				setModelRotation((prev) => (prev + 90) % 360);
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [placementMode]);
+
 	const cameraSettings = useMemo(() => {
 		const baseZoom = 40;
-		// Adjust zoom based on grid size to keep the view consistent
 		const scaleFactor = 20 / guiControls.gridSize;
+
+		const distance = 25;
 		return {
-			position: [15, 15, 15] as [number, number, number],
+			position: [distance, distance * 0.8660254, distance] as [number, number, number],
+			rotation: [-Math.PI / 6, Math.PI / 4, 0] as [number, number, number],
 			zoom: baseZoom * scaleFactor,
 		};
 	}, [guiControls.gridSize]);
 
-	useEffect(() => {
-		const gui = new lil.GUI();
+	// Helper functions to update guiControls
+	const setBlockColor = (color: string) => {
+		setGuiControls((prev) => ({ ...prev, blockColor: color }));
+	};
 
-		// Create folders for better organization
-		const canvasFolder = gui.addFolder("Canvas Settings");
-		const gridFolder = gui.addFolder("Grid Settings");
-		const blockFolder = gui.addFolder("Block Settings");
+	const setGridColor = (color: string) => {
+		setGuiControls((prev) => ({ ...prev, gridColor: color }));
+	};
 
-		// Canvas Size control with square increments
-		canvasFolder
-			.add(guiControls, "canvasSize", [50, 100, 150, 200])
-			.name("Canvas Size (%)")
-			.onChange((value: number) => {
-				setGuiControls((prev) => ({ ...prev, canvasSize: value }));
-			});
-
-		// Grid size control
-		gridFolder
-			.add(guiControls, "gridSize", [10, 20, 30, 40, 50])
-			.name("Grid Size")
-			.onChange((value: number) => {
-				setGuiControls((prev) => ({ ...prev, gridSize: value }));
-			});
-
-		// Grid color control
-		gridFolder
-			.addColor(guiControls, "gridColor")
-			.name("Grid Color")
-			.onChange((value: string) => {
-				setGuiControls((prev) => ({ ...prev, gridColor: value }));
-			});
-
-		// Block Color control
-		blockFolder
-			.addColor(guiControls, "blockColor")
-			.name("Block Color")
-			.onChange((value: string) => {
-				setGuiControls((prev) => ({ ...prev, blockColor: value }));
-			});
-
-		// Open folders by default
-		canvasFolder.open();
-		gridFolder.open();
-		blockFolder.open();
-
-		// Cleanup GUI when component unmounts
-		return () => {
-			gui.destroy();
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	// Convert assets to legacy format for MapControls (save compatibility)
+	const cubesForSave = assets;
 
 	return (
 		<div
 			style={{
 				width: "100vw",
 				height: "100vh",
+				paddingTop: "64px", // Account for navbar height
 				display: "flex",
 				justifyContent: "center",
 				alignItems: "center",
 				overflow: "hidden",
+				position: "relative",
 			}}
 		>
+			{/* Settings Panel */}
+			<SettingsPanel
+				blockColor={guiControls.blockColor}
+				setBlockColor={setBlockColor}
+				gridColor={guiControls.gridColor}
+				setGridColor={setGridColor}
+				selectedTexture={selectedTexture}
+				setSelectedTexture={setSelectedTexture}
+				deleteMode={deleteMode}
+				setDeleteMode={setDeleteMode}
+				placementMode={placementMode}
+				setPlacementMode={setPlacementMode}
+				selectedModel={selectedModel}
+				setSelectedModel={setSelectedModel}
+				modelRotation={modelRotation}
+				setModelRotation={setModelRotation}
+			/>
+
+			{/* Delete Mode Status Indicator - positioned below the Delete Blocks button */}
+			{deleteMode && (
+				<div className="absolute top-36 left-4 z-10 bg-error text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+					<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+						<path
+							fillRule="evenodd"
+							d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+							clipRule="evenodd"
+						/>
+					</svg>
+					Delete Mode Active (Press 'D' to toggle)
+				</div>
+			)}
+
+			{/* Model Placement Indicator - below delete mode indicator or below button */}
+			{placementMode === 'model' && selectedModel && (
+				<div className={`absolute ${deleteMode ? 'top-48' : 'top-36'} left-4 z-10 bg-primary text-white px-4 py-2 rounded-lg shadow-lg`}>
+					<span className="font-medium">Placing: {selectedModel}</span>
+					<span className="ml-2 opacity-75">({modelRotation}°)</span>
+					<span className="ml-2 text-xs opacity-75">Press 'R' to rotate</span>
+				</div>
+			)}
+
+			{/* MapControls moved here, outside of the Canvas */}
+			<MapControls
+				cubes={cubesForSave}
+				blockColor={guiControls.blockColor}
+				handleLoadMap={handleLoadMap}
+				deleteMode={deleteMode}
+				setDeleteMode={setDeleteMode}
+			/>
+
 			<Canvas
 				gl={{ antialias: true }}
 				orthographic
@@ -277,16 +232,30 @@ const ThreeScene = () => {
 					zoom: cameraSettings.zoom,
 					near: 0.1,
 					far: 1000,
-					rotation: [0, 0, 0],
+					rotation: cameraSettings.rotation,
 					up: [0, 1, 0],
 				}}
 				style={{
 					width: `${guiControls.canvasSize}%`,
 					height: `${guiControls.canvasSize}%`,
 					aspectRatio: "1 / 1",
+					background: "#1d232a",
 				}}
 			>
-				<Scene blockColor={guiControls.blockColor} gridSize={guiControls.gridSize} gridColor={guiControls.gridColor} />
+				<Suspense fallback={null}>
+					<Scene
+						blockColor={guiControls.blockColor}
+						gridSize={guiControls.gridSize}
+						gridColor={guiControls.gridColor}
+						assets={assets}
+						onAssetsChange={setAssets}
+						deleteMode={deleteMode}
+						selectedTexture={selectedTexture}
+						selectedModel={selectedModel}
+						placementMode={placementMode}
+						modelRotation={modelRotation}
+					/>
+				</Suspense>
 			</Canvas>
 		</div>
 	);
