@@ -84,7 +84,7 @@ const Model = ({
 	return (
 		<group
 			ref={groupRef}
-			position={[position[0], position[1] + 0.5, position[2]]}
+			position={[position[0], position[1], position[2]]}
 			rotation={[0, (rotation * Math.PI) / 180, 0]}
 			scale={finalScale}
 			onClick={handleClick}
