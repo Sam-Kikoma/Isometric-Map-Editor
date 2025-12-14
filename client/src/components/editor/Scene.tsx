@@ -1,11 +1,12 @@
 import { useState, useMemo, Suspense } from "react";
 import { useFrame, useThree, useLoader } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import Cube from "./Cube";
 import Model from "./Model";
 import Highlight from "./Highlight";
 import { TEXTURES, AssetData, getAllTexturePaths } from "./types";
+import type { UserCursor } from "../../hooks/useCollaboration";
 
 // Texture loader component to preload textures
 const TextureLoader = ({
@@ -53,6 +54,8 @@ interface SceneProps {
 	selectedModel: string | null;
 	placementMode: 'cube' | 'model';
 	modelRotation: number;
+	userCursors?: UserCursor[];
+	onCursorMove?: (position: [number, number, number] | null) => void;
 }
 
 const Scene = ({ 
@@ -65,7 +68,9 @@ const Scene = ({
 	selectedTexture,
 	selectedModel,
 	placementMode,
-	modelRotation 
+	modelRotation,
+	userCursors = [],
+	onCursorMove,
 }: SceneProps) => {
 	const [highlightPos, setHighlightPos] = useState<[number, number, number]>([0, 0, 0]);
 	const { camera, raycaster } = useThree();
@@ -101,6 +106,9 @@ const Scene = ({
 					: 0;
 				
 				setHighlightPos([newX, stackY, newZ]);
+				
+				// Update cursor position for collaboration
+				onCursorMove?.([newX, stackY, newZ]);
 			}
 		}
 	});
@@ -243,6 +251,43 @@ const Scene = ({
 							/>
 						))}
 					</Suspense>
+
+					{/* Render other users' cursors */}
+					{userCursors.map((cursor, index) => 
+						cursor.position && (
+							<group key={`cursor-${index}`} position={cursor.position}>
+								{/* Cursor ring */}
+								<mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+									<ringGeometry args={[0.3, 0.4, 32]} />
+									<meshBasicMaterial color={cursor.color} transparent opacity={0.8} />
+								</mesh>
+								{/* Username label */}
+								<Html
+									position={[0, 0.5, 0]}
+									center
+									style={{
+										pointerEvents: 'none',
+										userSelect: 'none',
+									}}
+								>
+									<div
+										style={{
+											background: cursor.color,
+											color: 'white',
+											padding: '2px 8px',
+											borderRadius: '4px',
+											fontSize: '12px',
+											fontWeight: 'bold',
+											whiteSpace: 'nowrap',
+											textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+										}}
+									>
+										{cursor.name}
+									</div>
+								</Html>
+							</group>
+						)
+					)}
 
 					<OrbitControls enableRotate={false} enablePan={true} minZoom={30} maxZoom={100} enableDamping={false} />
 				</>
