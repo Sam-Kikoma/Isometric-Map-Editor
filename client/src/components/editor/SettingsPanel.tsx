@@ -17,6 +17,8 @@ interface SettingsPanelProps {
 	setSelectedModel: (modelId: string | null) => void;
 	modelRotation: number;
 	setModelRotation: (rotation: number) => void;
+	gridSize: number;
+	setGridSize: (size: number) => void;
 }
 
 // Group textures by category
@@ -46,12 +48,14 @@ const SettingsPanel = ({
 	setSelectedTexture,
 	deleteMode,
 	setDeleteMode,
-	placementMode,
+	placementMode: _placementMode,
 	setPlacementMode,
 	selectedModel,
 	setSelectedModel,
 	modelRotation,
 	setModelRotation,
+	gridSize: _gridSize,
+	setGridSize: _setGridSize,
 }: SettingsPanelProps) => {
 	const [isOpen, setIsOpen] = useState(true);
 	const [activeTab, setActiveTab] = useState<'cube' | 'model'>('cube');

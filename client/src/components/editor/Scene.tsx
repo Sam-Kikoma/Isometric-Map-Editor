@@ -5,7 +5,7 @@ import * as THREE from "three";
 import Cube from "./Cube";
 import Model from "./Model";
 import Highlight from "./Highlight";
-import { TEXTURES, AssetData, getAllTexturePaths } from "./types";
+import { AssetData, getAllTexturePaths } from "./types";
 import type { UserCursor } from "../../hooks/useCollaboration";
 
 // Texture loader component to preload textures

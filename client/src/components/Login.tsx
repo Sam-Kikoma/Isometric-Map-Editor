@@ -46,6 +46,14 @@ const Login = () => {
 				<div className="card-body">
 					<h2 className="card-title text-2xl font-bold text-center">Login</h2>
 
+					{/* Test credentials info */}
+					<div className="alert alert-info text-sm">
+						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+						</svg>
+						<span>Test credentials: <strong>wasabi@email.com</strong> / <strong>wasabi</strong></span>
+					</div>
+
 					{error && <div className="alert alert-error">{error}</div>}
 
 					<form onSubmit={handleSubmit}>
