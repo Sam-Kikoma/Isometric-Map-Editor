@@ -135,21 +135,22 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 			console.log("Loaded map data:", mapData);
 
 			if (mapData.data) {
-				let cubes, blockColor;
+				let assets, blockColor;
 				if (mapData.data.data) {
-					// Structure: mapData.data.data.{cubes, blockColor}
-					cubes = mapData.data.data.cubes;
+					// Structure: mapData.data.data.{assets/cubes, blockColor}
+					// Check for 'assets' first (new format), fall back to 'cubes' (legacy format)
+					assets = mapData.data.data.assets || mapData.data.data.cubes;
 					blockColor = mapData.data.data.blockColor;
 				} else {
-					// Structure: mapData.data.{cubes, blockColor}
-					cubes = mapData.data.cubes;
+					// Structure: mapData.data.{assets/cubes, blockColor}
+					assets = mapData.data.assets || mapData.data.cubes;
 					blockColor = mapData.data.blockColor;
 				}
 
 				// Validate the data before using it
-				if (Array.isArray(cubes) && typeof blockColor === "string") {
-					console.log("Loading cubes:", cubes, "color:", blockColor);
-					handleLoadMap(cubes, blockColor);
+				if (Array.isArray(assets) && typeof blockColor === "string") {
+					console.log("Loading assets:", assets, "color:", blockColor);
+					handleLoadMap(assets, blockColor);
 				} else {
 					console.error("Invalid map data format:", mapData);
 					throw new Error("Invalid map data format");
