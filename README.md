@@ -1,94 +1,142 @@
 # Isometric Map Editor
 
-A full-stack isometric map editor web application. This project consists of a React/Vite client and a Node.js/Express/Prisma server.
+A browser-based isometric map editor built with Three.js and React. Create, share, and collaborate on isometric maps in real-time.
 
-## Features
+![Isometric Map Editor](https://img.shields.io/badge/status-active-success.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-- Isometric map editing with 3D models and textures
-- User authentication and community features
-- Collaborative editing (WIP)
-- Map rating and sharing
-- Persistent storage with PostgreSQL via Prisma ORM
+## Overview
+
+IsoEdit is a web application that lets users build isometric maps using cubes, textures, and 3D models. Maps can be saved, shared with the community, and edited collaboratively in real-time.
+
+### Key Features
+
+- **Isometric Editor** — Place cubes and 3D models on a customizable grid with an intuitive point-and-click interface
+- **Textures & Colors** — Apply various textures (brick, fabric, metal, wood) or solid colors to blocks
+- **3D Model Support** — Add pre-built models (buildings, vehicles, nature) to your maps
+- **Real-time Collaboration** — Work on maps together with others via WebSocket-powered room sharing
+- **Community Gallery** — Browse, rate, and remix public maps created by other users
+- **Undo/Redo** — Full history support for your editing session
+- **Export** — Download your creation as a PNG image
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| Frontend | React 18, TypeScript, Vite, Three.js, React Three Fiber, TailwindCSS, DaisyUI |
+| Backend | Node.js, Express, TypeScript, Prisma ORM, JWT, bcrypt |
+| Database | PostgreSQL |
+| Real-time | Yjs, y-websocket (CRDT-based collaboration) |
 
 ## Project Structure
 
 ```
-Isometric-Map-Editor/
-├── client/   # Frontend (React, Vite)
+├── client/                 # React frontend
 │   ├── src/
-│   │   ├── components/      # UI and editor components
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── index.css        # Global styles
-│   │   └── App.tsx, main.tsx
-│   ├── public/              # Static assets (models, textures)
-│   ├── package.json         # Frontend dependencies
-│   └── vite.config.ts       # Vite configuration
-├── server/   # Backend (Node.js, Express, Prisma)
-│   ├── src/
-│   │   ├── handlers/        # API route handlers
-│   │   ├── modules/         # Business logic modules
-│   │   ├── db.ts            # Prisma client setup
-│   │   └── server.ts        # Express server entry
-│   ├── prisma/              # Prisma schema & migrations
-│   ├── package.json         # Backend dependencies
-│   └── tsconfig.json        # TypeScript config
+│   │   ├── components/     # UI components (Login, Signup, Community, Editor)
+│   │   ├── hooks/          # Custom hooks (useCollaboration)
+│   │   └── config/         # API configuration
+│   └── public/             # Static assets (3D models, textures)
+│
+└── server/                 # Express backend
+    ├── src/
+    │   ├── handlers/       # Route handlers (user, map, rating)
+    │   └── modules/        # Business logic (auth)
+    └── prisma/             # Database schema & migrations
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18+ recommended)
-- npm or yarn
+- Node.js v18+
 - PostgreSQL database
+- npm or yarn
 
-### Setup
+### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Sam-Kikoma/Isometric-Map-Editor.git
-   cd Isometric-Map-Editor
+```bash
+# Clone the repository
+git clone https://github.com/Sam-Kikoma/Isometric-Map-Editor.git
+cd Isometric-Map-Editor
+
+# Install client dependencies
+cd client && npm install
+
+# Install server dependencies
+cd ../server && npm install
+```
+
+### Configuration
+
+1. Create `server/.env` with your database connection:
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/isoedit"
+   JWT_SECRET="your-secret-key"
    ```
-2. **Install dependencies:**
-   ```bash
-   cd client && npm install
-   cd ../server && npm install
+
+2. Create `client/.env.development`:
+   ```env
+   VITE_REACT_APP_API_URL=http://localhost:3001
    ```
-3. **Configure environment variables:**
-   - Copy `server/.env.example` to `server/.env` and set your database connection string.
-4. **Run database migrations:**
-   ```bash
-   cd server
-   npx prisma migrate deploy
-   ```
-5. **Start the backend server:**
-   ```bash
-   npm run dev
-   ```
-6. **Start the frontend client:**
-   ```bash
-   cd ../client
-   npm run dev
-   ```
-7. **Open the app:**
-   Visit [http://localhost:5173](http://localhost:5173) in your browser.
 
-## Scripts
+### Database Setup
 
-### Client
+```bash
+cd server
+npx prisma migrate deploy
+npx prisma generate
+```
 
-- `npm run dev` — Start Vite development server
-- `npm run build` — Build for production
-- `npm run preview` — Preview production build
+### Running Locally
 
-### Server
+```bash
+# Terminal 1 — Start the backend
+cd server && npm run dev
 
-- `npm run dev` — Start backend in development mode
-- `npm run start` — Start backend in production mode
-- `npx prisma migrate dev` — Run migrations and generate Prisma client
+# Terminal 2 — Start the frontend
+cd client && npm run dev
+```
 
-## Technologies Used
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-- **Frontend:** React, TypeScript, Vite, Three.js
-- **Backend:** Node.js, Express, TypeScript, Prisma ORM
-- **Database:** PostgreSQL
+**Test Credentials:** `wasabi@email.com` / `wasabi`
+
+## Deployment
+
+### Frontend (Vercel/Netlify)
+- Set root directory to `client`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Set `VITE_REACT_APP_API_URL` to your backend URL
+
+### Backend (Railway/Render)
+- Set root directory to `server`
+- Build command: `npm install && npx prisma generate`
+- Start command: `npm run start`
+- Set `DATABASE_URL` and `JWT_SECRET` environment variables
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/signin` | User login |
+| POST | `/signup` | User registration |
+| GET | `/api/maps` | List user's maps |
+| POST | `/api/maps` | Create a new map |
+| GET | `/api/maps/:id` | Get map by ID |
+| DELETE | `/api/maps/:id` | Delete a map |
+| GET | `/public/maps` | List public maps |
+| POST | `/api/ratings` | Rate a map |
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+MIT
