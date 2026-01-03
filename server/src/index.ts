@@ -4,6 +4,8 @@ app.get("/", (req, res) => {
 	res.send("<h1>Live</h1>");
 });
 
-app.listen(3001, () => {
-	console.log("Live: 3001");
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+	console.log(`Live: ${PORT}`);
 });
