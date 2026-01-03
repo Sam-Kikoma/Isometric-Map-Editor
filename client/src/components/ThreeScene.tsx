@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import SettingsPanel from "./editor/SettingsPanel";
 import MapControls from "./editor/MapControls";
 import Scene from "./editor/Scene";
@@ -9,7 +9,6 @@ import { useCollaboration } from "../hooks/useCollaboration";
 
 const ThreeScene = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
-	const _navigate = useNavigate();
 	
 	// Get room ID from URL or generate a default one
 	const roomId = searchParams.get("room") || searchParams.get("load") || "default-room";
