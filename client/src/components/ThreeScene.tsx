@@ -6,6 +6,7 @@ import MapControls from "./editor/MapControls";
 import Scene from "./editor/Scene";
 import { AssetData, CubeData } from "./editor/types";
 import { useCollaboration } from "../hooks/useCollaboration";
+import { API_URL } from "../config/api";
 
 const ThreeScene = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -147,7 +148,7 @@ const ThreeScene = () => {
 			if (mapId && !initialLoadDone) {
 				try {
 					const token = localStorage.getItem("token");
-					const response = await fetch(`http://localhost:3001/api/maps/${mapId}`, {
+					const response = await fetch(`${API_URL}/api/maps/${mapId}`, {
 						headers: {
 							Authorization: `Bearer ${token}`,
 						},

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_URL } from "../config/api";
 
 interface MapData {
 	id: string;
@@ -73,8 +74,8 @@ const MapCard = ({
 
 			// Use public endpoint if not authenticated, protected endpoint if authenticated
 			const url = isAuth
-				? `http://localhost:3001/api/maps/${map.id}/rating`
-				: `http://localhost:3001/api/public/maps/${map.id}/rating`;
+				? `${API_URL}/api/maps/${map.id}/rating`
+				: `${API_URL}/api/public/maps/${map.id}/rating`;
 
 			const headers: Record<string, string> = {};
 			if (isAuth) {
@@ -96,7 +97,7 @@ const MapCard = ({
 		setLoading(true);
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`http://localhost:3001/api/maps/${map.id}/rate`, {
+			const response = await fetch(`${API_URL}/api/maps/${map.id}/rate`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -167,7 +168,7 @@ const Community = () => {
 			const isAuth = token !== null;
 
 			// Use public endpoint if not authenticated
-			const url = isAuth ? "http://localhost:3001/api/maps" : "http://localhost:3001/api/public/maps";
+			const url = isAuth ? `${API_URL}/api/maps` : `${API_URL}/api/public/maps`;
 
 			const headers: Record<string, string> = {};
 			if (isAuth) {
