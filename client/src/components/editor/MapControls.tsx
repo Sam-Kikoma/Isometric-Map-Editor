@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_URL } from "../../config/api";
 import { Link, useNavigate } from "react-router-dom";
 import type { CubeData, AssetData } from "./types";
 
@@ -41,7 +42,7 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 			setLoading(true);
 			const token = localStorage.getItem("token");
 
-			const response = await fetch("http://localhost:3001/api/maps", {
+			const response = await fetch(`${API_URL}/api/maps`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
@@ -83,7 +84,7 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 
 			const token = localStorage.getItem("token");
 
-			const response = await fetch("http://localhost:3001/api/maps", {
+			const response = await fetch(`${API_URL}/api/maps`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -121,7 +122,7 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 			setLoading(true);
 			const token = localStorage.getItem("token");
 
-			const response = await fetch(`http://localhost:3001/api/maps/${mapId}`, {
+			const response = await fetch(`${API_URL}/api/maps/${mapId}`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
@@ -171,7 +172,7 @@ const MapControls = ({ cubes, blockColor, handleLoadMap, deleteMode, setDeleteMo
 		try {
 			const token = localStorage.getItem("token");
 
-			const response = await fetch(`http://localhost:3001/api/maps/${mapId}`, {
+			const response = await fetch(`${API_URL}/api/maps/${mapId}`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${token}`,
