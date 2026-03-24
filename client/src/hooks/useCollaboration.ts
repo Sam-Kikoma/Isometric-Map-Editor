@@ -59,8 +59,15 @@ export function useCollaboration({
 		const yAssets = ydoc.getArray<AssetData>('assets');
 		yAssetsRef.current = yAssets;
 
-		// Connect via WebSocket - using public y-websocket server
-		const wsUrl = 'wss://demos.yjs.dev/ws';
+		// Connect via WebSocket (Yjs provider)
+		// Override via VITE_YJS_WS_URL.
+		// Defaults:
+		// - dev: ws://localhost:1234
+		// - prod: same host over /ws (wss on https, ws on http)
+		const defaultWsUrl = import.meta.env.DEV
+			? 'ws://localhost:1234'
+			: `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
+		const wsUrl = import.meta.env.VITE_YJS_WS_URL || defaultWsUrl;
 		const provider = new WebsocketProvider(wsUrl, `isoedit-${roomId}`, ydoc);
 		providerRef.current = provider;
 

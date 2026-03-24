@@ -5,6 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
+		"collab:server": "npm --prefix ../server/yjs-ws run dev",
+		"dev:collab": "VITE_YJS_WS_URL=ws://localhost:1234 concurrently -k -n YWS,VITE -c green,cyan \"npm --prefix ../server/yjs-ws run dev\" \"vite\"",
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",
 		"preview": "vite preview"
@@ -30,6 +32,7 @@
 		"@types/react-dom": "^19.0.4",
 		"@types/three": "^0.174.0",
 		"@vitejs/plugin-react": "^4.3.4",
+		"concurrently": "^9.2.1",
 		"daisyui": "^5.0.9",
 		"eslint": "^9.21.0",
 		"eslint-plugin-react-hooks": "^5.1.0",
