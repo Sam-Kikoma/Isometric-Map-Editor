@@ -72,10 +72,7 @@ const MapCard = ({
 			const token = localStorage.getItem("token");
 			const isAuth = token !== null;
 
-			// Use public endpoint if not authenticated, protected endpoint if authenticated
-			const url = isAuth
-				? `${API_URL}/api/maps/${map.id}/rating`
-				: `${API_URL}/api/public/maps/${map.id}/rating`;
+			const url = isAuth ? `${API_URL}/api/maps/${map.id}/rating` : `${API_URL}/api/public/maps/${map.id}/rating`;
 
 			const headers: Record<string, string> = {};
 			if (isAuth) {
@@ -167,7 +164,6 @@ const Community = () => {
 			const token = localStorage.getItem("token");
 			const isAuth = token !== null;
 
-			// Use public endpoint if not authenticated
 			const url = isAuth ? `${API_URL}/api/maps` : `${API_URL}/api/public/maps`;
 
 			const headers: Record<string, string> = {};
@@ -182,7 +178,6 @@ const Community = () => {
 			}
 
 			const data = await response.json();
-			// Filter to only show public maps (for authenticated users who also see their own)
 			const publicMaps = (data.data || []).filter((map: MapData) => map.isPublic);
 			setMaps(publicMaps);
 		} catch (error) {
@@ -199,7 +194,6 @@ const Community = () => {
 
 	return (
 		<div className="min-h-screen bg-base-200">
-			{/* Navbar */}
 			<div className="navbar bg-base-100 shadow-lg">
 				<div className="flex-1">
 					<Link to="/" className="btn btn-ghost text-xl">
@@ -229,7 +223,6 @@ const Community = () => {
 				</div>
 			</div>
 
-			{/* Content */}
 			<div className="container mx-auto px-4 py-8">
 				<h1 className="text-3xl font-bold mb-2">Community Maps</h1>
 				<p className="text-gray-500 mb-6">Browse and rate maps shared by the community</p>

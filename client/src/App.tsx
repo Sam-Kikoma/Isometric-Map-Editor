@@ -5,7 +5,6 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import Community from "./components/Community";
 
-// Protected route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 	const isAuthenticated = localStorage.getItem("token") !== null;
 
@@ -16,7 +15,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 	return <>{children}</>;
 };
 
-// Router configuration
 const router = createBrowserRouter([
 	{
 		path: "/",
