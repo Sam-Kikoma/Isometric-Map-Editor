@@ -9,8 +9,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   server:
-    build:
-      context: ./server
+    image: ${DOCKERHUB_USERNAME:-skikoma}/isometric-server:${IMAGE_TAG:-latest}
     expose:
       - "3001"
     environment:
@@ -22,16 +21,12 @@ services:
       - db
 
   yjs-ws:
-    build:
-      context: ./server/yjs-ws
+    image: ${DOCKERHUB_USERNAME:-skikoma}/isometric-yjs-ws:${IMAGE_TAG:-latest}
     expose:
       - "1234"
 
   client:
-    build:
-      context: ./client
-      args:
-        VITE_API_URL: ${VITE_API_URL:?Set VITE_API_URL in .env}
+    image: ${DOCKERHUB_USERNAME:-skikoma}/isometric-client:${IMAGE_TAG:-latest}
     ports:
       - "80:80"
     depends_on:
