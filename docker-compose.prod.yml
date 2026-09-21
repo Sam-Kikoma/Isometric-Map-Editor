@@ -5,6 +5,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-isoedit}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-isoedit}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-isoedit} -d ${POSTGRES_DB:-isoedit}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -18,7 +23,8 @@ services:
       PORT: 3001
       FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   yjs-ws:
     image: ${DOCKERHUB_USERNAME:-skikoma}/isometric-yjs-ws:${IMAGE_TAG:-latest}
